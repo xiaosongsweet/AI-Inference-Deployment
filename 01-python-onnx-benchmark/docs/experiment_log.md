@@ -79,3 +79,53 @@ ONNX 相对 PyTorch 加速比：3.40x
 ONNX Runtime 的推理性能优于 PyTorch。
 
 后续需要进一步测试不同 Batch Size 和 CPU 线程数。
+
+
+## 实验 04.2：不同 Batch Size 的推理性能对比
+
+### 1. 实验目的
+
+研究不同 Batch Size 对 PyTorch CPU 和 ONNX Runtime CPU
+推理性能的影响，分析批量推理对吞吐量和延迟的作用。
+
+### 2. 实验配置
+
+- 模型：CIFAR10 CNN
+- 运行设备：CPU
+- CPU 线程数：1
+- Batch Size：1、4、16、32、64
+- 预热次数：30
+- 正式测量次数：200
+- ONNX Runtime：CPUExecutionProvider
+
+### 3. 实验结果
+
+| Batch Size | PyTorch 延迟(ms) | ONNX 延迟(ms) | PyTorch 吞吐量(images/s) | ONNX 吞吐量(images/s) | 加速比 |
+|---:|---:|---:|---:|---:|---:|
+| 1 | 0.7248 | 0.2099 | 1379.61 | 4764.06 | 3.45x |
+| 4 | 2.3130 | 0.6923 | 1729.39 | 5777.64 | 3.34x |
+| 16 | 8.3071 | 2.6892 | 1926.07 | 5949.81 | 3.09x |
+| 32 | 16.1565 | 5.5184 | 1980.62 | 5798.76 | 2.93x |
+| 64 | 32.9381 | 10.6275 | 1943.04 | 6022.09 | 3.10x |
+
+### 4. 实验分析
+
+1. 随着 Batch Size 增大，PyTorch 和 ONNX Runtime 的吞吐量总体提高。
+2. PyTorch 在 Batch Size=32 时取得最高吞吐量，为 1980.62 images/s。
+3. ONNX Runtime 在 Batch Size=64 时取得最高吞吐量，为 6022.09 images/s。
+4. ONNX Runtime 在所有测试条件下均快于 PyTorch，加速比为 2.93x～3.45x。
+5. 单张图片平均分摊延迟随 Batch Size 增大总体下降，但 Batch Size=64 时 PyTorch 略有回升。
+
+### 5. 实验结论
+
+在当前模型、CPU 和单线程测试条件下，批量推理能够提高整体吞吐量。
+
+ONNX Runtime 在本次测试中表现出更高的吞吐量。
+
+不同 Batch Size 对两种推理引擎的影响并不完全相同，
+因此实际部署时需要根据吞吐量、响应延迟和内存占用选择合适的 Batch Size。
+
+### 6. 实验局限性
+
+本次实验采用平均延迟作为主要指标，尚未统计 P50、P95 等延迟分位数。
+每种 Batch Size 只进行了一轮正式测试，后续需要多轮重复实验验证稳定性。
